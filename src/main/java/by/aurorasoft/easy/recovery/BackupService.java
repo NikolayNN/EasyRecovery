@@ -23,8 +23,14 @@ public class BackupService {
         }
 
         try {
+            System.out.printf("[EasyRecovery][INFO]: Starting backup for service: %s%n", recoverable.getClass().getSimpleName());
+
             Object state = recoverable.backup();
             objectMapper.writeValue(file, state);
+
+            System.out.printf("[EasyRecovery][INFO]: Successfully saved state for service: %s to file: %s%n",
+                    recoverable.getClass().getSimpleName(), pathStr);
+
         } catch (IOException e) {
             throw new EasyRecoveryException("Failed to save state to file: " + pathStr, e);
         }

@@ -19,16 +19,22 @@ public class RestoreService {
         File file = new File(pathStr);
 
         if (!file.exists()) {
-            System.err.println("### [EasyRecovery]: File was not found " + pathStr);
+            System.out.printf("[EasyRecovery][WARN]: State for service '%s' not restored. File not found: %s%n",
+                    recoverable.getClass().getSimpleName(), pathStr);
             return;
         }
 
         try {
+            System.out.printf("[EasyRecovery][INFO]: Starting restore process for service: %s%n",
+                    recoverable.getClass().getSimpleName());
+
             String fileContent = Files.readString(file.toPath());
             Object state = RestoreUtils.restore(fileContent, recoverable, objectMapper);
             @SuppressWarnings("unchecked")
             EasyRecoverable<Object> castedRecoverable = (EasyRecoverable<Object>) recoverable;
             castedRecoverable.restore(state);
+            System.out.printf("[EasyRecovery][INFO]: Successfully restored state for service: %s%n",
+                    recoverable.getClass().getSimpleName());
         } catch (IOException e) {
             throw new EasyRecoveryException("Failed to restore state from file: " + pathStr, e);
         }
