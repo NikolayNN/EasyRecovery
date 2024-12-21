@@ -32,6 +32,7 @@ public class BackupService {
                     recoverable.getClass().getSimpleName(), pathStr);
 
         } catch (IOException e) {
+            e.printStackTrace();
             throw new EasyRecoveryException("Failed to save state to file: " + pathStr, e);
         }
     }
