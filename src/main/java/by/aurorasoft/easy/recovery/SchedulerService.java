@@ -31,12 +31,12 @@ public class SchedulerService {
         try {
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
-                System.out.println("Forced shutdown of scheduler.");
+                System.out.println("### [EasyRecovery]: Forced shutdown of scheduler.");
             }
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
-            System.out.println("Scheduler shutdown interrupted." + e.getMessage());
+            System.out.println("### [EasyRecovery]: Scheduler shutdown interrupted." + e.getMessage());
         }
     }
 }

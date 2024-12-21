@@ -25,7 +25,7 @@ public class EasyRecoveryService {
             services.forEach(restoreService::restore);
             schedulerService.start(services);
         } catch (EasyRecoveryException e) {
-            System.err.println("Start restore fail: " + e.getMessage());
+            System.err.println("### [EasyRecovery]: Start restore fail: " + e.getMessage());
         }
     }
 
@@ -34,7 +34,7 @@ public class EasyRecoveryService {
             schedulerService.shutdown();
             services.forEach(backupService::save);
         } catch (EasyRecoveryException e) {
-            System.err.println("Backup fail: " + e.getMessage());
+            System.err.println("### [EasyRecovery]: Backup fail: " + e.getMessage());
         }
     }
 }

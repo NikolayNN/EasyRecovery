@@ -19,7 +19,7 @@ public class RestoreService {
         File file = new File(pathStr);
 
         if (!file.exists()) {
-            System.out.println("Файл не найден: " + pathStr);
+            System.err.println("### [EasyRecovery]: File was not found " + pathStr);
             return;
         }
 
