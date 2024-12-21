@@ -31,7 +31,8 @@ class RestoreUtils {
 
     private static java.lang.reflect.Type extractGenericType(EasyRecoverable<?> recoverable) {
         for (java.lang.reflect.Type type : recoverable.getClass().getGenericInterfaces()) {
-            if (type instanceof ParameterizedType paramType) {
+            if (type instanceof ParameterizedType) {
+                ParameterizedType paramType = (ParameterizedType) type;
                 if (paramType.getRawType() == EasyRecoverable.class) {
                     return paramType.getActualTypeArguments()[0];
                 }
