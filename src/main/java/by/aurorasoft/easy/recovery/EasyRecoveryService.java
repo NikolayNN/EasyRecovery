@@ -21,9 +21,9 @@ public class EasyRecoveryService {
     /**
      * Constructs an {@code EasyRecoveryService} instance with the specified components.
      *
-     * @param services        the list of recoverable services to be managed
-     * @param restoreService  the service responsible for restoring service states
-     * @param backupService   the service responsible for saving service states
+     * @param services         the list of recoverable services to be managed
+     * @param restoreService   the service responsible for restoring service states
+     * @param backupService    the service responsible for saving service states
      * @param schedulerService the service responsible for scheduling periodic backups
      */
     public EasyRecoveryService(List<EasyRecoverable<?>> services,
@@ -46,10 +46,11 @@ public class EasyRecoveryService {
     public void start() {
         try {
             services.forEach(restoreService::restore);
-            schedulerService.start(services);
         } catch (EasyRecoveryException e) {
+            e.printStackTrace();
             System.err.println("### [EasyRecovery]: Start restore fail: " + e.getMessage());
         }
+        schedulerService.start(services);
     }
 
     /**
@@ -59,10 +60,11 @@ public class EasyRecoveryService {
      * <p>If an error occurs during the backup process, it is logged.</p>
      */
     public void stop() {
-        try{
+        try {
             schedulerService.shutdown();
             services.forEach(backupService::save);
         } catch (EasyRecoveryException e) {
+            e.printStackTrace();
             System.err.println("### [EasyRecovery]: Backup fail: " + e.getMessage());
         }
     }

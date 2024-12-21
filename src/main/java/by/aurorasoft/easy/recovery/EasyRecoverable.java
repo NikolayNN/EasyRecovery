@@ -14,7 +14,7 @@ import java.time.Duration;
  *
  * @param <S> the type of the state object to be backed up and restored
  */
-public interface EasyRecoverable<S> extends Serializable {
+public interface EasyRecoverable<S> {
 
     /**
      * Returns the file path where the state should be saved or restored from.
