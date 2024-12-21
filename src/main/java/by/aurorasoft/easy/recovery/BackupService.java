@@ -1,16 +1,13 @@
 package by.aurorasoft.easy.recovery;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 
 public class BackupService {
 
-    private final ObjectMapper objectMapper;
-
-    BackupService(ObjectMapper mapper) {
-        this.objectMapper = mapper;
+    BackupService() {
     }
 
     public void save(EasyRecoverable<?> recoverable) {
@@ -26,7 +23,10 @@ public class BackupService {
             System.out.printf("[EasyRecovery][INFO]: Starting backup for service: %s%n", recoverable.getClass().getSimpleName());
 
             Object state = recoverable.backup();
-            objectMapper.writeValue(file, state);
+
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+                oos.writeObject(state);
+            }
 
             System.out.printf("[EasyRecovery][INFO]: Successfully saved state for service: %s to file: %s%n",
                     recoverable.getClass().getSimpleName(), pathStr);

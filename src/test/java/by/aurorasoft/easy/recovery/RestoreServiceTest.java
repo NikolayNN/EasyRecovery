@@ -1,12 +1,13 @@
 package by.aurorasoft.easy.recovery;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -15,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class RestoreServiceTest {
 
     private RestoreService restoreService;
-    private ObjectMapper objectMapper;
 
-    static class TestRecoverable implements EasyRecoverable<Map<String, Object>> {
+    static class TestRecoverable implements EasyRecoverable<Map<String, Object>>, Serializable {
+        private static final long serialVersionUID = 1L;
         private Map<String, Object> state;
         private final String backupPath;
 
@@ -47,55 +48,43 @@ class RestoreServiceTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
-        restoreService = new RestoreService(objectMapper);
+        restoreService = new RestoreService();
     }
 
     @Test
-    void testRestoreWithValidJson(@TempDir Path tempDir) throws IOException {
-        Path file = tempDir.resolve("backup.json");
-        String jsonContent = "{\"key\":\"value\",\"number\":123}";
-        Files.writeString(file, jsonContent);
+    void testRestoreWithValidData(@TempDir Path tempDir) throws IOException, ClassNotFoundException {
+        Path file = tempDir.resolve("backup.ser");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file.toFile()))) {
+            oos.writeObject(Map.of("key", "value", "number", 123));
+        }
 
         TestRecoverable recoverable = new TestRecoverable(file.toString());
         restoreService.restore(recoverable);
 
-        assertNotNull(recoverable.getState());
-        assertEquals("value", recoverable.getState().get("key"));
-        assertEquals(123, recoverable.getState().get("number"));
+        assertNotNull(recoverable.getState(), "State should not be null after restore.");
+        assertEquals("value", recoverable.getState().get("key"), "Key should match expected value.");
+        assertEquals(123, recoverable.getState().get("number"), "Number should match expected value.");
     }
 
     @Test
     void testRestoreWithNonExistentFile() {
-        TestRecoverable recoverable = new TestRecoverable("non_existent.json");
+        TestRecoverable recoverable = new TestRecoverable("non_existent.ser");
         restoreService.restore(recoverable);
-        assertNull(recoverable.getState());
+        assertNull(recoverable.getState(), "State should be null if file does not exist.");
     }
 
     @Test
-    void testRestoreWithInvalidJson(@TempDir Path tempDir) throws IOException {
-        Path file = tempDir.resolve("invalid.json");
-        String invalidJson = "{\"key\":\"value\",\"number\"}"; // Некорректный JSON
-        Files.writeString(file, invalidJson);
-
-        TestRecoverable recoverable = new TestRecoverable(file.toString());
-
-        Exception exception = assertThrows(RuntimeException.class, () -> {
-            restoreService.restore(recoverable);
-        });
-
-    }
-
-    @Test
-    void testRestoreWithEmptyJson(@TempDir Path tempDir) throws IOException {
-        Path file = tempDir.resolve("empty.json");
-        Files.writeString(file, "{}");
+    void testRestoreWithEmptyData(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("empty.ser");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file.toFile()))) {
+            oos.writeObject(Map.of());
+        }
 
         TestRecoverable recoverable = new TestRecoverable(file.toString());
         restoreService.restore(recoverable);
 
-        assertNotNull(recoverable.getState());
-        assertTrue(recoverable.getState().isEmpty());
+        assertNotNull(recoverable.getState(), "State should not be null after restore.");
+        assertTrue(recoverable.getState().isEmpty(), "Restored state should be empty.");
     }
 
 }

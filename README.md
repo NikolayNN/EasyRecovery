@@ -8,14 +8,14 @@
 ## Features
 - Automatic state restoration on service startup.
 - Periodic backups using a scheduler.
-- JSON-based state persistence (using Jackson).
+- Java standard serialization-based state persistence.
 - Supports custom backup strategies.
 - Framework-agnostic: works standalone or with Spring Boot.
 
 ---
 
 ## Installation
-Add the following dependency to your `pom.xml` if you are using Maven to include the core EasyRecovery library, which handles service state management and JSON-based persistence using Jackson:
+Add the following dependency to your `pom.xml` if you are using Maven to include the core EasyRecovery library, which handles service state management using standard Java serialization:
 
 ```xml
 <repositories>
@@ -53,7 +53,7 @@ public class SampleService implements EasyRecoverable<MyState> {
 
     @Override
     public String backupPath() {
-        return "sample_service_backup.json";
+        return "sample_service_backup.ser";
     }
 
     @Override
@@ -77,7 +77,6 @@ public class SampleService implements EasyRecoverable<MyState> {
 
 ```java
 import by.aurorasoft.easy.recovery.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 
 public class Main {
@@ -85,10 +84,9 @@ public class Main {
         List<EasyRecoverable<?>> services = List.of(new SampleService());
 
         EasyRecoveryService recoveryService = new EasyRecoveryConfig(
-                services, new ObjectMapper(), 4
+                services, 1
         ).easyRecoveryService();
 
-        
     }
 }
 ```
@@ -98,7 +96,6 @@ Create a Spring Boot configuration:
 
 ```java
 import by.aurorasoft.easy.recovery.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import java.util.List;
@@ -106,8 +103,8 @@ import java.util.List;
 @Configuration
 public class EasyRecoverySpringConfig extends EasyRecoveryConfig {
 
-    public EasyRecoverySpringConfig(ObjectMapper objectMapper, List<EasyRecoverable<?>> services) {
-        super(services, objectMapper, 4);
+    public EasyRecoverySpringConfig(List<EasyRecoverable<?>> services) {
+        super(services, 1);
     }
 
     @Bean
@@ -139,4 +136,3 @@ This project is licensed under the [MIT License](LICENSE).
 Feel free to submit issues, feature requests, and pull requests.
 
 ---
-

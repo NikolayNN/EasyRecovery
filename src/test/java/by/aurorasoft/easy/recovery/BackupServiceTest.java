@@ -1,11 +1,13 @@
 package by.aurorasoft.easy.recovery;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -15,9 +17,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class BackupServiceTest {
 
     private BackupService backupService;
-    private ObjectMapper objectMapper;
 
-    static class TestRecoverable implements EasyRecoverable<Map<String, Object>> {
+    static class TestRecoverable implements EasyRecoverable<Map<String, Object>>, Serializable {
+        private static final long serialVersionUID = 1L;
         private Map<String, Object> state;
         private final String backupPath;
 
@@ -44,34 +46,47 @@ class BackupServiceTest {
 
     @BeforeEach
     void setUp() {
-        objectMapper = new ObjectMapper();
-        backupService = new BackupService(objectMapper);
+        backupService = new BackupService();
     }
 
     @Test
-    void testSaveWithValidData(@TempDir Path tempDir) throws IOException {
-        Path file = tempDir.resolve("backup.json");
+    void testSaveWithValidData(@TempDir Path tempDir) throws IOException, ClassNotFoundException {
+        Path file = tempDir.resolve("backup.ser");
         Map<String, Object> state = Map.of("key", "value", "number", 123);
         TestRecoverable recoverable = new TestRecoverable(file.toString(), state);
 
         backupService.save(recoverable);
 
-        String content = Files.readString(file);
-        assertTrue(content.contains("\"key\":\"value\""));
-        assertTrue(content.contains("\"number\":123"));
+        // Проверяем, что файл существует
+        assertTrue(Files.exists(file), "Backup file should exist.");
+
+        // Проверяем, что содержимое корректно десериализуется
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file.toFile()))) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> restoredState = (Map<String, Object>) ois.readObject();
+            assertEquals("value", restoredState.get("key"), "Key should match expected value.");
+            assertEquals(123, restoredState.get("number"), "Number should match expected value.");
+        }
     }
 
     @Test
-    void testSaveCreatesDirectories(@TempDir Path tempDir) throws IOException {
+    void testSaveCreatesDirectories(@TempDir Path tempDir) throws IOException, ClassNotFoundException {
         Path subDir = tempDir.resolve("sub/dir");
-        Path file = subDir.resolve("backup.json");
+        Path file = subDir.resolve("backup.ser");
         Map<String, Object> state = Map.of("testKey", "testValue");
         TestRecoverable recoverable = new TestRecoverable(file.toString(), state);
 
         backupService.save(recoverable);
 
-        assertTrue(Files.exists(file));
-        String content = Files.readString(file);
-        assertTrue(content.contains("\"testKey\":\"testValue\""));
+        // Проверяем, что файл существует
+        assertTrue(Files.exists(file), "Backup file should exist in created directories.");
+
+        // Проверяем, что содержимое корректно десериализуется
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file.toFile()))) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> restoredState = (Map<String, Object>) ois.readObject();
+            assertEquals("testValue", restoredState.get("testKey"), "Value should match expected state.");
+        }
     }
+
 }
