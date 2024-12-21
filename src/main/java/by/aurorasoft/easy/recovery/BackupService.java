@@ -26,10 +26,9 @@ public class BackupService {
 
             try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
                 oos.writeObject(state);
+                System.out.printf("[EasyRecovery][INFO]: Successfully saved state for service: %s to file: %s%n",
+                        recoverable.getClass().getSimpleName(), pathStr);
             }
-
-            System.out.printf("[EasyRecovery][INFO]: Successfully saved state for service: %s to file: %s%n",
-                    recoverable.getClass().getSimpleName(), pathStr);
 
         } catch (IOException e) {
             e.printStackTrace();
