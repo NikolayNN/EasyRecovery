@@ -42,13 +42,15 @@ https://jitpack.io/#NikolayNN/EasyRecovery/1.0
 ## How to Use
 
 ### 1. Define Your Service
-Implement the `EasyRecoverable<S>` interface for any service that requires backup and restoration.
+Implement the `EasyRecoverable<S>` interface for any service that requires backup and restoration. Ensure that the state class implements `Serializable`.
 
 ```java
 import by.aurorasoft.easy.recovery.EasyRecoverable;
+import java.io.Serializable;
 import java.time.Duration;
 
-public class SampleService implements EasyRecoverable<MyState> {
+public class SampleService implements EasyRecoverable<MyState>, Serializable {
+    private static final long serialVersionUID = 1L;
     private MyState state;
 
     @Override
@@ -119,7 +121,7 @@ public class EasyRecoverySpringConfig extends EasyRecoveryConfig {
 ## API Overview
 
 ### Core Classes
-- **`EasyRecoverable<S>`:** Interface for defining services.
+- **`EasyRecoverable<S>`:** Interface for defining services. The state type `S` must implement `Serializable`.
 - **`EasyRecoveryService:`** Main service managing backup and restoration.
 
 ### Exceptions
