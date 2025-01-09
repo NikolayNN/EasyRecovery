@@ -60,13 +60,17 @@ public class EasyRecoveryService {
      * <p>If an error occurs during the backup process, it is logged.</p>
      */
     public void stop() {
-        try {
-            System.out.println("[EasyRecovery]: Start stop Gracefully");
-            schedulerService.shutdown();
-            services.forEach(backupService::save);
-        } catch (EasyRecoveryException e) {
-            e.printStackTrace();
-            System.err.println("[EasyRecovery]: Backup fail: " + e.getMessage());
-        }
+        System.out.println("[EasyRecovery]: Start stop Gracefully");
+        schedulerService.shutdown();
+        services.forEach(recoverable -> {
+                    try {
+                        backupService.save(recoverable);
+                    } catch (Exception e) {
+                        System.err.println("[EasyRecovery]: Backup is failed for service: " + recoverable.getClass().getSimpleName());
+                        e.printStackTrace();
+                    }
+                }
+
+        );
     }
 }
