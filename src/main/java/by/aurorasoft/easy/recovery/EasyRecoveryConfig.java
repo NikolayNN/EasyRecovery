@@ -3,6 +3,7 @@ package by.aurorasoft.easy.recovery;
 import sun.misc.Signal;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The {@code EasyRecoveryConfig} class serves as a base configuration for initializing and managing
@@ -16,10 +17,12 @@ public abstract class EasyRecoveryConfig {
     private final int schedulerThreadPoolSize;
     private final List<EasyRecoverable<?>> services;
 
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
+
     /**
      * Constructs an {@code EasyRecoveryConfig} with the specified services and scheduler configuration.
      *
-     * @param services              the list of services to be managed
+     * @param services                the list of services to be managed
      * @param schedulerThreadPoolSize the size of the thread pool for scheduling backups
      */
     public EasyRecoveryConfig(List<EasyRecoverable<?>> services,
@@ -49,10 +52,18 @@ public abstract class EasyRecoveryConfig {
         // Запуск
         easyRecoveryService.start();
 
-        // Обработка завершения
-        Signal.handle(new Signal("TERM"), signal -> System.out.println("%%%%%%%%%%% Received SIGTERM, stopping..."));
+        // Метод для безопасной остановки
+        Runnable safeStop = () -> {
+            if (stopped.compareAndSet(false, true)) {
+                easyRecoveryService.stop();
+            }
+        };
 
-        Runtime.getRuntime().addShutdownHook(new Thread(easyRecoveryService::stop));
+        // Обработка SIGTERM
+        Signal.handle(new Signal("TERM"), signal -> safeStop.run());
+
+        // Обработка Shutdown Hook
+        Runtime.getRuntime().addShutdownHook(new Thread(safeStop));
         return easyRecoveryService;
     }
 }
