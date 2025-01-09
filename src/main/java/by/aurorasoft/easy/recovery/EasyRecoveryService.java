@@ -61,8 +61,12 @@ public class EasyRecoveryService {
      */
     public void stop() {
         try {
+            System.out.println("### [EasyRecovery]: Start stop Gracefully");
             schedulerService.shutdown();
-            services.forEach(backupService::save);
+            services.forEach(recoverable -> {
+                System.out.println("### [EasyRecovery]: Stop service: " + recoverable.getClass().getSimpleName());
+                backupService.save(recoverable);
+            });
         } catch (EasyRecoveryException e) {
             e.printStackTrace();
             System.err.println("### [EasyRecovery]: Backup fail: " + e.getMessage());
