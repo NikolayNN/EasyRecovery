@@ -35,8 +35,23 @@ public abstract class EasyRecoveryConfig {
      * Creates and starts the {@code EasyRecoveryService} for managing the backup and restoration of services.
      *
      * <p>This method initializes the {@code EasyRecoveryService} with the provided services, a backup service,
-     * a restore service, and a scheduler. It also registers a shutdown hook to ensure proper cleanup
-     * during application termination.</p>
+     * a restore service, and a scheduler. It also registers mechanisms to ensure proper cleanup during
+     * application termination.</p>
+     *
+     * <p>The following cleanup mechanisms are registered:</p>
+     * <ul>
+     *     <li>{@code Signal.handle(new Signal("TERM"), signal -> safeStop.run())}:
+     *         Handles the {@code SIGTERM} signal, which is typically sent when the application is stopped
+     *         (e.g., via {@code docker stop} or similar commands). This ensures that the {@code EasyRecoveryService}
+     *         is properly stopped when the application receives a termination signal.</li>
+     *     <li>{@code Runtime.getRuntime().addShutdownHook(new Thread(safeStop))}:
+     *         Registers a shutdown hook that executes during JVM termination (e.g., when the JVM exits normally
+     *         or is terminated). This acts as a fallback mechanism to ensure that {@code EasyRecoveryService.stop()}
+     *         is called even if the application terminates without receiving a {@code SIGTERM} signal.</li>
+     * </ul>
+     *
+     * <p>Both mechanisms utilize a thread-safe {@code safeStop} method, which ensures that the
+     * {@code EasyRecoveryService.stop()} method is called only once, even if both cleanup mechanisms are triggered.</p>
      *
      * @return an instance of {@code EasyRecoveryService} that is ready to manage services
      */
@@ -52,7 +67,6 @@ public abstract class EasyRecoveryConfig {
         // Запуск
         easyRecoveryService.start();
 
-        // Метод для безопасной остановки
         Runnable safeStop = () -> {
             if (stopped.compareAndSet(false, true)) {
                 easyRecoveryService.stop();
