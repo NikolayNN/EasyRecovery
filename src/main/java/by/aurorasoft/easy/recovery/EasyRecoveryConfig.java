@@ -1,5 +1,7 @@
 package by.aurorasoft.easy.recovery;
 
+import sun.misc.Signal;
+
 import java.util.List;
 
 /**
@@ -48,6 +50,8 @@ public abstract class EasyRecoveryConfig {
         easyRecoveryService.start();
 
         // Обработка завершения
+        Signal.handle(new Signal("TERM"), signal -> System.out.println("%%%%%%%%%%% Received SIGTERM, stopping..."));
+
         Runtime.getRuntime().addShutdownHook(new Thread(easyRecoveryService::stop));
         return easyRecoveryService;
     }
