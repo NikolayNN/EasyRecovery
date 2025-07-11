@@ -97,18 +97,21 @@ public class Main {
 Create a Spring Boot configuration:
 
 ```java
-import by.aurorasoft.easy.recovery.*;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import java.util.List;
-
 @Configuration
 public class EasyRecoverySpringConfig extends EasyRecoveryConfig {
 
     public EasyRecoverySpringConfig(List<EasyRecoverable<?>> services) {
-        super(services, 1);
+        super(services, 4);            // 4 – thread-pool size for backup tasks
     }
 
+    /** Custom error handler (override is optional). */
+    @Override
+    protected EasyRecoveryExceptionHandler exceptionHandler() {
+        return (t, src) -> log.error(
+                "EasyRecovery: error in {} – {}", src.getClass().getSimpleName(), t.getMessage(), t);
+    }
+
+    /** Expose the fully configured EasyRecoveryService as a Spring bean. */
     @Bean
     public EasyRecoveryService easyRecoveryService() {
         return super.easyRecoveryService();

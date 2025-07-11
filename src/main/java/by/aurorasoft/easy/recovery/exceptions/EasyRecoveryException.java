@@ -1,4 +1,4 @@
-package by.aurorasoft.easy.recovery;
+package by.aurorasoft.easy.recovery.exceptions;
 
 public class EasyRecoveryException extends RuntimeException {
 

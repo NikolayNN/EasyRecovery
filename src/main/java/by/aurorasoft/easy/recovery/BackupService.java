@@ -1,5 +1,7 @@
 package by.aurorasoft.easy.recovery;
 
+import by.aurorasoft.easy.recovery.exceptions.EasyRecoveryException;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

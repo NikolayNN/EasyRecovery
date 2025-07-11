@@ -31,6 +31,10 @@ public abstract class EasyRecoveryConfig {
         this.services = services;
     }
 
+    protected EasyRecoveryExceptionHandler exceptionHandler() {
+        return EasyRecoveryExceptionHandler.NOOP;
+    }
+
     /**
      * Creates and starts the {@code EasyRecoveryService} for managing the backup and restoration of services.
      *
@@ -56,12 +60,14 @@ public abstract class EasyRecoveryConfig {
      * @return an instance of {@code EasyRecoveryService} that is ready to manage services
      */
     public EasyRecoveryService easyRecoveryService() {
+        EasyRecoveryExceptionHandler exceptionHandler = exceptionHandler();
         BackupService backupService = new BackupService();
         EasyRecoveryService easyRecoveryService = new EasyRecoveryService(
                 services,
                 new RestoreService(),
                 backupService,
-                new SchedulerService(backupService, schedulerThreadPoolSize)
+                schedulerService(backupService, schedulerThreadPoolSize, exceptionHandler),
+                exceptionHandler
         );
 
         // Запуск
@@ -79,5 +85,11 @@ public abstract class EasyRecoveryConfig {
         // Обработка Shutdown Hook
         Runtime.getRuntime().addShutdownHook(new Thread(safeStop));
         return easyRecoveryService;
+    }
+
+    protected SchedulerService schedulerService(BackupService backupService,
+                                                int schedulerThreadPoolSize,
+                                                EasyRecoveryExceptionHandler exceptionHandler) {
+        return new SchedulerService(backupService, schedulerThreadPoolSize, exceptionHandler);
     }
 }

@@ -1,5 +1,9 @@
 package by.aurorasoft.easy.recovery;
 
+import by.aurorasoft.easy.recovery.exceptions.EasyRecoveryBackupException;
+import by.aurorasoft.easy.recovery.exceptions.EasyRecoveryException;
+import by.aurorasoft.easy.recovery.exceptions.EasyRecoveryRestoreException;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -17,6 +21,7 @@ public class EasyRecoveryService {
     private final RestoreService restoreService;
     private final BackupService backupService;
     private final SchedulerService schedulerService;
+    private final EasyRecoveryExceptionHandler exceptionHandler;
 
     /**
      * Constructs an {@code EasyRecoveryService} instance with the specified components.
@@ -29,11 +34,13 @@ public class EasyRecoveryService {
     public EasyRecoveryService(List<EasyRecoverable<?>> services,
                                RestoreService restoreService,
                                BackupService backupService,
-                               SchedulerService schedulerService) {
+                               SchedulerService schedulerService,
+                               EasyRecoveryExceptionHandler exceptionHandler) {
         this.services = Objects.requireNonNullElse(services, List.of());
         this.restoreService = restoreService;
         this.backupService = backupService;
         this.schedulerService = schedulerService;
+        this.exceptionHandler = exceptionHandler;
     }
 
     /**
@@ -44,12 +51,17 @@ public class EasyRecoveryService {
      * and the system continues with the remaining services.</p>
      */
     public void start() {
-        try {
-            services.forEach(restoreService::restore);
-        } catch (EasyRecoveryException e) {
-            e.printStackTrace();
-            System.err.println("[EasyRecovery]: Start restore fail: " + e.getMessage());
-        }
+
+        services.forEach(recoverable -> {
+            try {
+                restoreService.restore(recoverable);
+            } catch (EasyRecoveryException e) {
+                e.printStackTrace();
+                System.err.println("[EasyRecovery]: Start restore fail for service: " + recoverable.getClass().getSimpleName() + " message: " + e.getMessage());
+                exceptionHandler.handle(new EasyRecoveryRestoreException("Start restore fail for service: " + recoverable.getClass().getSimpleName(), e));
+            }
+        });
+
         schedulerService.start(services);
     }
 
@@ -68,9 +80,9 @@ public class EasyRecoveryService {
                     } catch (Exception e) {
                         System.err.println("[EasyRecovery]: Backup is failed for service: " + recoverable.getClass().getSimpleName());
                         e.printStackTrace();
+                        exceptionHandler.handle(new EasyRecoveryBackupException("Backup is failed for service: " + recoverable.getClass().getSimpleName(), e));
                     }
                 }
-
         );
     }
 }
