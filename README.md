@@ -1,21 +1,29 @@
 # EasyRecovery Library
 
 ## Overview
-**EasyRecovery** is a lightweight Java library for managing service state backup and restoration with built-in periodic backups. The library supports integration with frameworks like Spring but works perfectly without external dependencies.
+**EasyRecovery** is a lightweight Java library for service state backup and restoration with optional periodic backups.
+
+It works without framework dependencies and can be integrated into plain Java apps or Spring-based projects.
+
+---
+
+## Requirements
+- Java 11+
+- Maven/Gradle project (for dependency management)
 
 ---
 
 ## Features
-- Automatic state restoration on service startup.
-- Periodic backups using a scheduler.
-- Java standard serialization-based state persistence.
-- Supports custom backup strategies.
-- Framework-agnostic: works standalone or with Spring Boot.
+- State restore on application startup.
+- Periodic backups via scheduler (`ScheduledExecutorService`).
+- Java serialization-based persistence (`ObjectOutputStream` / `ObjectInputStream`).
+- Custom exception handling via `EasyRecoveryExceptionHandler`.
+- Graceful shutdown with final backup on `SIGTERM` / JVM shutdown hook.
 
 ---
 
-## Installation
-Add the following dependency to your `pom.xml` if you are using Maven to include the core EasyRecovery library, which handles service state management using standard Java serialization:
+## Installation (Maven)
+Add JitPack repository and dependency:
 
 ```xml
 <repositories>
@@ -24,33 +32,34 @@ Add the following dependency to your `pom.xml` if you are using Maven to include
         <url>https://jitpack.io</url>
     </repository>
 </repositories>
-```
-```xml
+
 <dependencies>
     <dependency>
         <groupId>com.github.NikolayNN</groupId>
         <artifactId>EasyRecovery</artifactId>
-        <version>Tag</version>
+        <version><!-- put Git tag/version here --></version>
     </dependency>
 </dependencies>
 ```
 
-https://jitpack.io/#NikolayNN/EasyRecovery/1.0
+JitPack page: https://jitpack.io/#NikolayNN/EasyRecovery
 
 ---
 
 ## How to Use
 
-### 1. Define Your Service
-Implement the `EasyRecoverable<S>` interface for any service that requires backup and restoration. Ensure that the state class implements `Serializable`.
+### 1) Define recoverable service
+Implement `EasyRecoverable<S>` for every service you want to back up.
+
+> Important: The object returned from `backup()` must be serializable.
 
 ```java
 import by.aurorasoft.easy.recovery.EasyRecoverable;
 import java.io.Serializable;
 import java.time.Duration;
 
-public class SampleService implements EasyRecoverable<MyState>, Serializable {
-    private static final long serialVersionUID = 1L;
+public class SampleService implements EasyRecoverable<MyState> {
+
     private MyState state;
 
     @Override
@@ -70,48 +79,61 @@ public class SampleService implements EasyRecoverable<MyState>, Serializable {
 
     @Override
     public Duration backupPeriod() {
-        return Duration.ofMinutes(5);
+        return Duration.ofMinutes(5); // Duration.ZERO disables periodic backups
+    }
+
+    public static class MyState implements Serializable {
+        private static final long serialVersionUID = 1L;
+        // fields...
     }
 }
 ```
 
-### 2. Configure the Library (Standalone)
+### 2) Configure and start (standalone)
+`EasyRecoveryConfig` is **abstract**, so create a small subclass:
 
 ```java
 import by.aurorasoft.easy.recovery.*;
 import java.util.List;
 
 public class Main {
+
+    static class AppRecoveryConfig extends EasyRecoveryConfig {
+        public AppRecoveryConfig(List<EasyRecoverable<?>> services) {
+            super(services, 1); // scheduler thread pool size
+        }
+    }
+
     public static void main(String[] args) {
         List<EasyRecoverable<?>> services = List.of(new SampleService());
+        EasyRecoveryService recoveryService = new AppRecoveryConfig(services).easyRecoveryService();
 
-        EasyRecoveryService recoveryService = new EasyRecoveryConfig(
-                services, 1
-        ).easyRecoveryService();
-
+        // recoveryService.start() is called inside easyRecoveryService()
     }
 }
 ```
 
-### 3. Spring Integration (Optional)
-Create a Spring Boot configuration:
+### 3) Spring integration (optional)
 
 ```java
+import by.aurorasoft.easy.recovery.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
 @Configuration
 public class EasyRecoverySpringConfig extends EasyRecoveryConfig {
 
     public EasyRecoverySpringConfig(List<EasyRecoverable<?>> services) {
-        super(services, 4);            // 4 – thread-pool size for backup tasks
+        super(services, 4);
     }
 
-    /** Custom error handler (override is optional). */
     @Override
     protected EasyRecoveryExceptionHandler exceptionHandler() {
-        return (t, src) -> log.error(
-                "EasyRecovery: error in {} – {}", src.getClass().getSimpleName(), t.getMessage(), t);
+        return e -> System.err.println("EasyRecovery error: " + e.getMessage());
     }
 
-    /** Expose the fully configured EasyRecoveryService as a Spring bean. */
     @Bean
     public EasyRecoveryService easyRecoveryService() {
         return super.easyRecoveryService();
@@ -123,21 +145,31 @@ public class EasyRecoverySpringConfig extends EasyRecoveryConfig {
 
 ## API Overview
 
-### Core Classes
-- **`EasyRecoverable<S>`:** Interface for defining services. The state type `S` must implement `Serializable`.
-- **`EasyRecoveryService:`** Main service managing backup and restoration.
+### Core components
+- `EasyRecoverable<S>` — contract for backup/restore + backup file path + backup period.
+- `EasyRecoveryConfig` — bootstrap/configuration entry point.
+- `EasyRecoveryService` — orchestration (restore on start, backup on stop).
+- `BackupService` / `RestoreService` / `SchedulerService` — internal services for persistence and scheduling.
 
 ### Exceptions
-- **`EasyRecoveryException:`** Custom exception for handling recovery-related issues.
+- `EasyRecoveryException`
+- `EasyRecoveryBackupException`
+- `EasyRecoveryRestoreException`
+- `EasyRecoveryScheduleBackupException`
+
+---
+
+## Notes & limitations
+- Uses Java serialization; keep serialized classes version-compatible (`serialVersionUID`) across releases.
+- `backupPath()` should point to a writable location.
+- If backup file does not exist, restore is skipped with warning logs.
 
 ---
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
+License file is currently not included in this repository. Add a `LICENSE` file before publishing to package registries.
 
 ---
 
 ## Contribution
-Feel free to submit issues, feature requests, and pull requests.
-
----
+Issues and pull requests are welcome.
